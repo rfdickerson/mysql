@@ -11,13 +11,25 @@ import Dispatch
 */
 public final class Database {
     
+    #if os(Linux) 
+    static private let racePrevention = dispatch_semaphore_create(1)
+    #else 
     static private let racePrevention = DispatchSemaphore( value: 1 )
+    #endif
     
+    #if os(Linux)
+    static private func oneAtATime(_ fn: () throws -> Void) rethrows {
+        defer { dispatch_semaphore_signal(racePrevention) }
+        dispatch_semaphore_wait(racePrevention, 2000)
+        try fn()
+    }
+    #else
     static private func oneAtATime(_ fn: () throws -> Void) rethrows {
         defer { racePrevention.signal() }
         racePrevention.wait()
         try fn()
     }
+    #endif
     
     static var databaseCount = 0
     
